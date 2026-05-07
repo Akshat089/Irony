@@ -8,7 +8,7 @@ pub enum NodeStatus {
     Dead,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug,PartialEq)]
 pub struct NodeInfo {
     pub node_id: String,
     pub node_port: u16,
