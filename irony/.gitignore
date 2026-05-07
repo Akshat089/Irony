@@ -1,0 +1,6 @@
+/target
+.git
+node_modules
+Dockerfile
+docker-compose.yml
+*.log
