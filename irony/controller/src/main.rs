@@ -14,12 +14,13 @@ async fn main() {
         .route("/v1/heartbeat", post(get_heartbeat))
         .route("/v1/ring", get(get_ring));
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
-
-    println!("Controller running on http://{}", addr);
-
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:9090")
         .await
-        .unwrap();
+        .expect("Failed to bind port 9090");
+
+    println!("Controller listening on http://127.0.0.1:9090");
+
+    axum::serve(listener, app)
+        .await
+        .expect("Controller server failed");
 }

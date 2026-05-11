@@ -12,7 +12,7 @@ use common::models::{
      PutResponse,
      ReplicateRequest,};
 pub async fn register_node(
-    Json(_req): Json<NodeRegisterRequest>,
+    Json(req): Json<NodeRegisterRequest>,
 ) -> Json<NodeRegisterResponse> {
     println!("REGISTER HIT: {:?}", req.node_id);
 
@@ -25,7 +25,8 @@ pub async fn register_node(
         },
     })
 }
-pub async fn get_heartbeat(Json(_req): Json<HeartbeatRequest>,)-> Json<HeartbeatResponse>{
+pub async fn get_heartbeat(Json(req): Json<HeartbeatRequest>,)-> Json<HeartbeatResponse>{
+    println!("HEARTBEAT HIT: {:?}", req.node_id);
     Json(HeartbeatResponse{
         acknowledged: true,
         ring_changed: false,
