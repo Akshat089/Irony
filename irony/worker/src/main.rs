@@ -15,7 +15,7 @@ use axum::{
 mod routes;
 mod state;
 mod heartbeat;
-
+mod replication;
 use routes::*;
 use state::{AppState, SharedState};
 
@@ -115,7 +115,6 @@ pub async fn fetch_ring_state(state: SharedState) {
 
 #[tokio::main]
 async fn main() {
-    // Must be first — loads .env file before any env::var() calls
     dotenv::dotenv().ok();
 
     let node_id = env::var("NODE_ID")
@@ -143,18 +142,16 @@ async fn main() {
         ring_version: Arc::new(RwLock::new(0)),
     });
 
-    // Blocks until registration succeeds
     register_with_controller(state.clone()).await;
 
-    // Heartbeat background task
     tokio::spawn(heartbeat::run(state.clone()));
 
-    // Worker routes only — no controller routes here
     let app = Router::new()
         .route("/v1/health", get(healthcheck))
         .route("/v1/keys", get(get_all_keys))
         .route("/v1/keys/{key}", get(get_key).put(put_key))
         .route("/v1/replicate", post(replicate))
+        .route("/v1/replicate-to", post(replicate_to))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(&bind_addr)

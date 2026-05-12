@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use reqwest::Client;
 use dashmap::DashMap;
 use tokio::sync::RwLock;
 
