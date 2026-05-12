@@ -22,6 +22,7 @@ pub struct RingState {
     pub nodes: Vec<NodeInfo>,
     pub virtual_nodes: Vec<(u64, String)>,
     pub replication_factor: u8,
+    pub ring_version: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -47,6 +48,7 @@ pub struct GetResponse {
 pub struct HeartbeatRequest {
     pub node_id: String,
     pub timestamp: DateTime<Utc>,
+    pub ring_version: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

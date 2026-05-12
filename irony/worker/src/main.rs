@@ -54,8 +54,13 @@ async fn register_with_controller(state: SharedState) {
                     .expect("Failed to parse registration response");
 
                 if reg_response.success {
+                    let ring_version_from_controller = reg_response.ring_state.ring_version;
                     let mut ring = state.ring.write().await;
                     *ring = HashRing::from_ring_state(reg_response.ring_state);
+                    {
+                        let mut version = state.ring_version.write().await;
+                        *version = ring_version_from_controller;
+                    }
                     println!(
                         "Successfully registered with controller. Ring has {} nodes.",
                         ring.get_all_nodes().len()
@@ -96,9 +101,13 @@ pub async fn fetch_ring_state(state: SharedState) {
                 .json()
                 .await
                 .expect("Failed to parse ring state");
-
+            let new_version = ring_state.ring_version;
             let mut ring = state.ring.write().await;
             *ring = HashRing::from_ring_state(ring_state);
+            {
+                let mut version = state.ring_version.write().await;
+                *version = new_version;
+            }
             println!(
                 "Ring state refreshed. Ring now has {} nodes.",
                 ring.get_all_nodes().len()

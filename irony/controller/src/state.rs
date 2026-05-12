@@ -10,6 +10,6 @@ pub struct AppState {
     pub last_heartbeat: Arc<RwLock<HashMap<String,chrono::DateTime<chrono::Utc>>>>, //last heartbeat timestamp keyed by node_id
     pub http_client: reqwest::Client, //shared HTTP client for making requests to workers
     pub ring_version: Arc<RwLock<u64>>, //version number to track ring state changes
-
+    pub ring_changed: Arc<RwLock<bool>>, //flag to indicate if ring has changed since last heartbeat
 }
 pub type SharedState = Arc<AppState>;

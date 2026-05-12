@@ -112,7 +112,7 @@ impl HashRing {
         }
         ans
     }
-    pub fn to_ring_state(&self) -> RingState{
+    pub fn to_ring_state(&self, ring_version: u64) -> RingState{
         let ans = self.get_all_nodes();
         RingState{
             nodes: ans,
@@ -123,6 +123,7 @@ impl HashRing {
             .collect(),
 
             replication_factor: 3,
+            ring_version,
         }
     }
     pub fn from_ring_state(ring_state: RingState) -> Self {

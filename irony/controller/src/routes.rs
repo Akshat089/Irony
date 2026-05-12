@@ -15,53 +15,100 @@ pub async fn register_node(
     Json(req): Json<NodeRegisterRequest>,
 ) -> Json<NodeRegisterResponse> {
     println!("REGISTER HIT: {:?}", req.node_id);
-    let node_info = NodeInfo{
-        node_id : req.node_id.clone(),
-        node_port : req.port,
-        status : NodeStatus::Alive,
-        host : req.host.clone(),    
-        last_heartbeat : None,
+
+    let node_info = NodeInfo {
+        node_id: req.node_id.clone(),
+        node_port: req.port,
+        status: NodeStatus::Alive,
+        host: req.host.clone(),
+        last_heartbeat: None,
     };
-    let mut ring = state.ring.write().await;
-    ring.add_node(node_info.clone());
-    let mut write_nodes = state.nodes.write().await;
-    write_nodes.insert(req.node_id.clone(), node_info);
-    drop(write_nodes);
-    let mut write_heartbeats = state.last_heartbeat.write().await;
-    write_heartbeats.insert(req.node_id.clone(), chrono::Utc::now());
-    drop(write_heartbeats);
-    let mut version = state.ring_version.write().await;
-    *version += 1;
-    let ring_state = ring.to_ring_state();
+
+    // Scope the write lock so it drops before we read
+    {
+        let mut ring = state.ring.write().await;
+        ring.add_node(node_info.clone());
+    } // ← write lock dropped here
+
+    {
+        let mut write_nodes = state.nodes.write().await;
+        write_nodes.insert(req.node_id.clone(), node_info);
+    }
+
+    {
+        let mut write_heartbeats = state.last_heartbeat.write().await;
+        write_heartbeats.insert(req.node_id.clone(), chrono::Utc::now());
+    }
+
+    let current_version = {
+        let mut version = state.ring_version.write().await;
+        *version += 1;
+        *version
+    };
+
+    // Now safe to read — write lock is already dropped
+    let ring_state = {
+        let ring = state.ring.read().await;
+        ring.to_ring_state(current_version)
+    };
+
+    println!(
+        "Node {} registered. Ring now has {} nodes.",
+        req.node_id,
+        ring_state.nodes.len()
+    );
+
     Json(NodeRegisterResponse {
         success: true,
         ring_state,
     })
 }
-pub async fn get_heartbeat(State(state): State<SharedState>, Json(req): Json<HeartbeatRequest>,)-> Json<HeartbeatResponse>{
-    println!("HEARTBEAT HIT: {:?}", req.node_id);
-    let mut write_heartbeats = state.last_heartbeat.write().await;
-    write_heartbeats.insert(req.node_id.clone(), req.timestamp);
-    let read_nodes = state.nodes.read().await;
-    if !read_nodes.contains_key(&req.node_id) {
-        println!(
-            "WARNING: heartbeat received from unknown node {}",
-            req.node_id
-        );
+pub async fn get_heartbeat(
+    State(state): State<SharedState>,
+    Json(req): Json<HeartbeatRequest>,
+) -> Json<HeartbeatResponse> {
+    let now = chrono::Utc::now();
+    
+    // Update the separate heartbeat timestamp map
+    {
+        let mut heartbeats = state.last_heartbeat.write().await;
+        heartbeats.insert(req.node_id.clone(), now);
     }
-    drop(read_nodes);
-    drop(write_heartbeats);
-    let ring_ver = state.ring_version.read().await;
-    Json(HeartbeatResponse{
+
+    // Also update last_heartbeat inside NodeInfo itself
+    {
+        let mut nodes = state.nodes.write().await;
+        if let Some(node) = nodes.get_mut(&req.node_id) {
+            node.last_heartbeat = Some(now);
+            node.status = NodeStatus::Alive; // recover if it was suspect
+        }
+    }
+
+    let current_version = {
+        let version = state.ring_version.read().await;
+        *version
+    };
+
+    let ring_changed = current_version != req.ring_version;
+
+    println!("HEARTBEAT HIT: {:?}", req.node_id);
+
+    Json(HeartbeatResponse {
         acknowledged: true,
-        ring_changed: true,
+        ring_changed,
     })
 }
-pub async fn get_ring(State(state): State<SharedState>) -> Json<RingState> {
+pub async fn get_ring(
+    State(state): State<SharedState>,
+) -> Json<RingState> {
+    let version = {
+        let ring_version = state.ring_version.read().await;
+        *ring_version
+    };
+
     let ring = state.ring.read().await;
-    let ring_state = ring.to_ring_state();
-    drop(ring);
-    Json(ring_state)    
+
+    Json(ring.to_ring_state(version))
 }
 pub async fn get_nodes(State(state): State<SharedState>) -> Json<Vec<NodeInfo>> {
     let read_nodes = state.nodes.read().await;

@@ -5,7 +5,7 @@ mod state;
 use state::{AppState, SharedState};
 use common::ring::HashRing;
 mod routes;
-
+mod heartbeat;
 use routes::*;
 
 #[tokio::main]
@@ -20,9 +20,10 @@ async fn main() {
             last_heartbeat: Arc::new(RwLock::new(std::collections::HashMap::new())),
             http_client: reqwest::Client::new(),
             ring_version: Arc::new(RwLock::new(0)),
+            ring_changed: Arc::new(RwLock::new(false)),
         }
     );
-
+    tokio::spawn(heartbeat::run(state.clone()));
     let app = Router::new()
         .route("/v1/nodes/register", post(register_node))
         .route("/v1/heartbeat", post(get_heartbeat))

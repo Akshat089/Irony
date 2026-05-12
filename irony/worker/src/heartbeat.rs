@@ -7,10 +7,14 @@ use crate::fetch_ring_state;
 pub async fn run(state: SharedState) {
     loop {
         sleep(Duration::from_secs(2)).await;
-
+        let version = {
+            let v = state.ring_version.read().await;
+            *v
+        };
         let request = HeartbeatRequest {
             node_id: state.node_id.clone(),
             timestamp: Utc::now(),
+            ring_version: version,
         };
 
         let result = state
@@ -30,6 +34,7 @@ pub async fn run(state: SharedState) {
                     }
                 };
 
+                // If controller says ring changed, fetch the latest ring state
                 if hb_response.ring_changed {
                     println!("Ring changed detected via heartbeat. Refreshing ring state...");
                     fetch_ring_state(state.clone()).await;
@@ -39,6 +44,7 @@ pub async fn run(state: SharedState) {
                 println!("Heartbeat failed with status: {}", response.status());
             }
             Err(e) => {
+                // Do not panic — controller might be temporarily unreachable
                 println!("Heartbeat could not reach controller: {}", e);
             }
         }
