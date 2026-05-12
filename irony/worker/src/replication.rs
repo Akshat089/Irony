@@ -9,7 +9,7 @@ pub async fn replicate_to_node(key: String, value: String, target_node_addr: Str
         value: value.clone(),
         origin_node_id: origin_node_id.clone(),
     };
-    let result = http_client.post(format!("http://{}/v1/replicate",target_node_addr))
+    let result = http_client.post(format!("{}/v1/replicate",target_node_addr))
         .json(&rep_req)
         .send()
         .await;

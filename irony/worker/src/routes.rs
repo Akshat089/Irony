@@ -72,7 +72,11 @@ pub async fn put_key(
 
     let ring = state.ring.read().await;
     let replicas: Vec<_> = ring.find_replicas(&key).into_iter().cloned().collect();
+    println!("Replica count: {}", replicas.len());
 
+    for replica in &replicas {
+        println!("Replica node: {}", replica.node_id);
+    }
     drop(ring);
     if replicas.is_empty() {
 
