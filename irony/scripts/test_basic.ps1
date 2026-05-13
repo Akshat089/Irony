@@ -13,7 +13,7 @@ Write-Host "============================================" -ForegroundColor Cyan
 Write-Host " IronRing Basic Test" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 
-# Step 1 — confirm all nodes are alive
+# Step 1 - confirm all nodes are alive
 Write-Host "`n[1] Checking cluster health..." -ForegroundColor Yellow
 $nodes = Invoke-RestMethod -Uri "$CONTROLLER/v1/nodes"
 $aliveCount = ($nodes | Where-Object { $_.status -eq "Alive" }).Count
@@ -24,7 +24,7 @@ if ($aliveCount -lt 4) {
 }
 Write-Host "    All nodes alive." -ForegroundColor Green
 
-# Step 2 — confirm ring is populated
+# Step 2 - confirm ring is populated
 Write-Host "`n[2] Checking ring state..." -ForegroundColor Yellow
 $ring = Invoke-RestMethod -Uri "$CONTROLLER/v1/ring"
 Write-Host "    Nodes in ring: $($ring.nodes.Count)"
@@ -35,7 +35,7 @@ if ($ring.nodes.Count -lt 4) {
 }
 Write-Host "    Ring is healthy." -ForegroundColor Green
 
-# Step 3 — PUT all 20 keys
+# Step 3 - PUT all 20 keys
 Write-Host "`n[3] Writing 20 keys..." -ForegroundColor Yellow
 $putSuccess = 0
 $putFailed = 0
@@ -64,7 +64,7 @@ if ($putFailed -gt 0) {
     Write-Host "    Failed: $putFailed" -ForegroundColor Red
 }
 
-# Step 4 — GET all keys back and verify values
+# Step 4 - GET all keys back and verify values
 Write-Host "`n[4] Reading all keys back..." -ForegroundColor Yellow
 $getSuccess = 0
 $getFailed = 0
@@ -89,7 +89,7 @@ foreach ($k in $KEYS) {
 
 Write-Host "    Found correct: $getSuccess / $($KEYS.Count)" -ForegroundColor Green
 
-# Step 5 — verify each key has exactly 3 replicas
+# Step 5 - verify each key has exactly 3 replicas
 Write-Host "`n[5] Verifying 3 replicas per key..." -ForegroundColor Yellow
 $replicaOk = 0
 $replicaWarn = 0
@@ -124,5 +124,5 @@ Write-Host " 3-replica keys   : $replicaOk / $($KEYS.Count)"
 if ($putFailed -eq 0 -and $getFailed -eq 0 -and $replicaWarn -eq 0) {
     Write-Host "`n ALL TESTS PASSED" -ForegroundColor Green
 } else {
-    Write-Host "`n SOME TESTS FAILED — check output above" -ForegroundColor Red
+    Write-Host "`n SOME TESTS FAILED - check output above" -ForegroundColor Red
 }
