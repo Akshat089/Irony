@@ -1,0 +1,57 @@
+.PHONY: run stop logs kill-worker revive-worker rebuild test check lint
+
+# Start all 5 nodes — rebuilds images if source has changed
+run:
+	docker compose up --build
+
+# Start in detached background mode
+run-detached:
+	docker compose up --build -d
+
+# Stop and remove all containers and network
+stop:
+	docker compose down
+
+# Stream live logs from all 5 containers
+logs:
+	docker compose logs -f
+
+# Stream logs from controller only
+logs-controller:
+	docker compose logs -f controller
+
+# Kill worker2 — simulates worker failure
+kill-worker:
+	docker compose stop worker2
+
+# Bring worker2 back — simulates recovery
+revive-worker:
+	docker compose start worker2
+
+# Rebuild all images from scratch without cache
+rebuild:
+	docker compose build --no-cache
+
+# Run cargo tests across workspace
+test:
+	cargo test
+
+# Check workspace compiles
+check:
+	cargo check
+
+# Run clippy linter
+lint:
+	cargo clippy -- -D warnings
+
+# Run basic test script
+test-basic:
+	powershell -ExecutionPolicy RemoteSigned -File scripts/test_basic.ps1
+
+# Run failure test script
+test-failure:
+	powershell -ExecutionPolicy RemoteSigned -File scripts/test_failure.ps1
+
+# Run full demo
+demo:
+	powershell -ExecutionPolicy RemoteSigned -File scripts/demo.ps1

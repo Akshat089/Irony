@@ -138,7 +138,8 @@ async fn main() {
     let controller_addr = env::var("CONTROLLER_ADDR")
         .expect("Missing CONTROLLER_ADDR environment variable");
 
-    let node_addr = format!("http://{}:{}", host, node_port);
+    let node_addr = env::var("ADVERTISE_ADDR")
+    .unwrap_or_else(|_| format!("http://{}:{}", host, node_port));
     let bind_addr = format!("{}:{}", host, node_port);
 
     let state: SharedState = Arc::new(AppState {
