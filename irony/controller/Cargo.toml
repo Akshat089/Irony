@@ -16,3 +16,4 @@ tracing-subscriber = "0.3.22"
 uuid = { version = "1.22.0", features = ["v4"] }
 dotenv = "0.15"
 dashmap = "6.1.0"
+futures = "0.3"

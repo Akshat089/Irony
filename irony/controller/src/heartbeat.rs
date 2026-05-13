@@ -2,7 +2,7 @@ use tokio::time::{sleep, Duration};
 use chrono::Utc;
 use common::models::NodeStatus;
 use crate::state::SharedState;
-
+use crate::replication;
 pub async fn run(state: SharedState) {
     loop {
         sleep(Duration::from_secs(5)).await;
@@ -48,7 +48,10 @@ pub async fn run(state: SharedState) {
                 }
             }
         }
-
+        let ring_snapshot = {
+            let ring = state.ring.read().await;
+            ring.clone()
+        };
         if !nodes_to_mark_dead.is_empty() {
             for node_id in &nodes_to_mark_dead {
                 {
@@ -72,6 +75,11 @@ pub async fn run(state: SharedState) {
                 }
 
                 println!("Re-replication would be triggered for {}", node_id);
+                tokio::spawn(replication::trigger_re_replication(
+                    state.clone(),
+                    node_id.clone(),
+                    ring_snapshot.clone(),
+                ));
             }
         }
     }

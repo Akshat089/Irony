@@ -24,11 +24,10 @@ pub async fn register_node(
         last_heartbeat: None,
     };
 
-    // Scope the write lock so it drops before we read
     {
         let mut ring = state.ring.write().await;
         ring.add_node(node_info.clone());
-    } // ← write lock dropped here
+    } 
 
     {
         let mut write_nodes = state.nodes.write().await;
@@ -75,12 +74,11 @@ pub async fn get_heartbeat(
         heartbeats.insert(req.node_id.clone(), now);
     }
 
-    // Also update last_heartbeat inside NodeInfo itself
     {
         let mut nodes = state.nodes.write().await;
         if let Some(node) = nodes.get_mut(&req.node_id) {
             node.last_heartbeat = Some(now);
-            node.status = NodeStatus::Alive; // recover if it was suspect
+            node.status = NodeStatus::Alive; 
         }
     }
 

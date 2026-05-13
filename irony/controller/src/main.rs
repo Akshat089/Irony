@@ -6,6 +6,7 @@ use state::{AppState, SharedState};
 use common::ring::HashRing;
 mod routes;
 mod heartbeat;
+mod replication;
 use routes::*;
 
 #[tokio::main]

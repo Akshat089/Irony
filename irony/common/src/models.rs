@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-
+use std::collections::HashMap;
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum NodeStatus {
     Alive,
@@ -86,5 +86,5 @@ pub struct ReplicateToRequest {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct KeyDumpResponse {
     pub node_id: String,
-    pub keys: Vec<String>,
+    pub keys: HashMap<String, String>,
 }

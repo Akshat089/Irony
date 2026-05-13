@@ -5,7 +5,7 @@ use axum::{
 };
 use crate::replication::replicate_to_node;
 use serde_json::json;
-
+use std::collections::HashMap;
 use common::models::{
     GetResponse,
     KeyDumpResponse,
@@ -296,15 +296,11 @@ pub async fn get_all_keys(
     State(state): State<SharedState>,
 ) -> Json<KeyDumpResponse> {
 
-    let keys = state
-        .store
-        .iter()
-        .map(|entry| entry.key().clone())
-        .collect();
+    let key : HashMap<String, String> = state.store.iter().map(|entry| (entry.key().clone(), entry.value().clone())).collect();
 
     Json(KeyDumpResponse {
         node_id: state.node_id.clone(),
-        keys,
+        keys: key,
     })
 }
 
