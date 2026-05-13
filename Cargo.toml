@@ -1,6 +1,7 @@
-[package]
-name = "Projj"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
+[workspace]
+members = [
+    "common",
+    "controller",
+    "worker",
+]
+resolver = "2"
