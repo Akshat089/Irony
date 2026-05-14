@@ -3,14 +3,14 @@ use common::ring::HashRing;
 use common::models::{NodeStatus, KeyDumpResponse};
 use crate::state::SharedState;
 use reqwest;
-
+use std::sync::atomic::Ordering;
 pub async fn trigger_re_replication(
     state: SharedState,
     failed_node_id: String,
     old_ring: HashRing,
 ) {
     println!("Starting re-replication for failed node: {}", failed_node_id);
-
+    state.re_replication_count.fetch_add(1, Ordering::Relaxed);
     let surviving_nodes: Vec<(String, String, u16)> = {
         state.nodes.read().await
             .iter()

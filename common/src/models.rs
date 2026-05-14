@@ -88,3 +88,23 @@ pub struct KeyDumpResponse {
     pub node_id: String,
     pub keys: HashMap<String, String>,
 }
+#[derive(Serialize, Deserialize, Debug)]
+pub struct WorkerMetric{
+    pub node_id : String,
+    pub key_count : u64,
+    pub total_puts: u64,
+    pub total_gets: u64,
+    pub replication_success: u64,
+    pub replication_failures: u64,
+    pub uptime_seconds: u64,
+}
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ControllerMetrics{
+    pub total_nodes: u64,
+    pub alive_nodes: u64,
+    pub suspect_nodes: u64,
+    pub dead_nodes: u64,
+    pub ring_version: u64,
+    pub re_replication_count: u64,
+    pub uptime_seconds: u64,
+}

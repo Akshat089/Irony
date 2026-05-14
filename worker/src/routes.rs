@@ -5,6 +5,7 @@ use axum::{
 };
 use crate::replication::replicate_to_node;
 use serde_json::json;
+use std::sync::atomic::Ordering;
 use std::collections::HashMap;
 use common::models::{
     GetResponse,
@@ -13,8 +14,9 @@ use common::models::{
     PutResponse,
     ReplicateRequest,
     ReplicateToRequest,
+    WorkerMetric,
 };
-
+use chrono::Utc;
 use crate::state::SharedState;
 
 pub async fn healthcheck(
@@ -64,6 +66,7 @@ pub async fn put_key(
             })),
         ));
     }
+    state.total_puts.fetch_add(1, Ordering::Relaxed);
     drop(ring);
 
     state
@@ -110,6 +113,8 @@ pub async fn put_key(
             target_addr.clone(),
             state.http_client.clone(),
             state.node_id.clone(),
+            state.replication_success.clone(),
+            state.replication_failures.clone(),
         )
         .await;
 
@@ -156,6 +161,8 @@ pub async fn put_key(
                 target_addr.clone(),
                 state.http_client.clone(),
                 state.node_id.clone(),
+                state.replication_success.clone(),
+                state.replication_failures.clone(),
             )
             .await;
 
@@ -235,6 +242,8 @@ pub async fn put_key(
                 target_addr.clone(),
                 client_clone,
                 origin_node_id,
+                state.replication_success.clone(),
+                state.replication_failures.clone(),
             )
             .await;
 
@@ -270,7 +279,7 @@ pub async fn get_key(
     Path(key): Path<String>,
     State(state): State<SharedState>,
 ) -> Result<Json<GetResponse>, (StatusCode, Json<serde_json::Value>)> {
-
+    state.total_gets.fetch_add(1, Ordering::Relaxed);
     match state.store.get(&key) {
 
         Some(value) => {
@@ -333,6 +342,8 @@ pub async fn replicate_to(
                 payload.target_node_addr.clone(),
                 state.http_client.clone(),
                 state.node_id.clone(),
+                state.replication_success.clone(),
+                state.replication_failures.clone(),
             )
             .await;
 
@@ -360,4 +371,20 @@ pub async fn replicate_to(
             }))
         }
     }
+}
+pub async fn get_metrics(State(state): State<SharedState>) -> Json<serde_json::Value>{ 
+    let ring = state.ring.read().await;
+    let metrics = WorkerMetric{
+        node_id: state.node_id.clone(),
+        key_count: ring.get_all_nodes().len() as u64,
+        total_puts: state.total_puts.load(Ordering::Relaxed),
+        total_gets: state.total_gets.load(Ordering::Relaxed),
+        replication_success: state.replication_success.load(Ordering::Relaxed),
+        replication_failures: state.replication_failures.load(Ordering::Relaxed),
+        uptime_seconds: (Utc::now() - state.started_at).num_seconds() as u64,
+    };
+    drop(ring);
+    Json(json!({
+        "metrics": metrics
+    }))
 }

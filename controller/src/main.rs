@@ -8,7 +8,7 @@ mod routes;
 mod heartbeat;
 mod replication;
 use routes::*;
-
+use std::sync::atomic::AtomicU64;
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
@@ -26,6 +26,8 @@ async fn main() {
         http_client: reqwest::Client::new(),
         ring_version: Arc::new(RwLock::new(0)),
         ring_changed: Arc::new(RwLock::new(false)),
+        re_replication_count: Arc::new(AtomicU64::new(0)),
+        started_at: chrono::Utc::now(),
     });
 
     tokio::spawn(heartbeat::run(state.clone()));
@@ -36,6 +38,7 @@ async fn main() {
         .route("/v1/ring", get(get_ring))
         .route("/v1/nodes", get(get_nodes))
         .route("/v1/health", get(get_health))
+        .route("/v1/metrics", get(get_metrics))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(&bind_addr)

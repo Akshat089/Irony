@@ -9,7 +9,11 @@ use common::models::{
     RingState,
     HeartbeatRequest,
     HeartbeatResponse,
-    NodeInfo,};
+    NodeInfo,
+    ControllerMetrics,
+};
+use chrono::Utc;
+use std::sync::atomic::Ordering;
 pub async fn register_node(
     State(state): State<SharedState>,
     Json(req): Json<NodeRegisterRequest>,
@@ -119,4 +123,28 @@ pub async fn get_health(State(state): State<SharedState>,) -> Json<serde_json::V
     Json(json!({
         "status": "ok"
     }))
+}
+
+pub async fn get_metrics(
+    State(state): State<SharedState>,
+) -> Json<ControllerMetrics> {
+    let nodes = state.nodes.read().await;
+    let total = nodes.len() as u64;
+    let alive = nodes.values().filter(|n| n.status == NodeStatus::Alive).count() as u64;
+    let suspect = nodes.values().filter(|n| n.status == NodeStatus::Suspect).count() as u64;
+    let dead = nodes.values().filter(|n| n.status == NodeStatus::Dead).count() as u64;
+    drop(nodes);
+
+    let ring_version = *state.ring_version.read().await;
+    let uptime = (Utc::now() - state.started_at).num_seconds() as u64;
+
+    Json(ControllerMetrics {
+        total_nodes: total,
+        alive_nodes: alive,
+        suspect_nodes: suspect,
+        dead_nodes: dead,
+        ring_version,
+        re_replication_count: state.re_replication_count.load(Ordering::Relaxed),
+        uptime_seconds: uptime,
+    })
 }

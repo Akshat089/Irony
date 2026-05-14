@@ -11,7 +11,8 @@ use axum::{
     routing::{get, post},
     Router,
 };
-
+use std::sync::atomic::AtomicU64;
+use chrono::Utc;
 mod routes;
 mod state;
 mod heartbeat;
@@ -150,6 +151,11 @@ async fn main() {
         controller_addr,
         http_client: Client::new(),
         ring_version: Arc::new(RwLock::new(0)),
+        total_puts: Arc::new(AtomicU64::new(0)),
+        total_gets: Arc::new(AtomicU64::new(0)),
+        replication_success: Arc::new(AtomicU64::new(0)),
+        replication_failures: Arc::new(AtomicU64::new(0)),
+        started_at: chrono::Utc::now(),
     });
 
     register_with_controller(state.clone()).await;
@@ -162,6 +168,7 @@ async fn main() {
         .route("/v1/keys/{key}", get(get_key).put(put_key))
         .route("/v1/replicate", post(replicate))
         .route("/v1/replicate-to", post(replicate_to))
+        .route("/v1/metrics", get(get_metrics))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(&bind_addr)
