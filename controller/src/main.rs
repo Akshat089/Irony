@@ -25,9 +25,12 @@ async fn main() {
         last_heartbeat: Arc::new(RwLock::new(std::collections::HashMap::new())),
         http_client: reqwest::Client::new(),
         ring_version: Arc::new(RwLock::new(0)),
-        ring_changed: Arc::new(RwLock::new(false)),
         re_replication_count: Arc::new(AtomicU64::new(0)),
         started_at: chrono::Utc::now(),
+        last_replication_node: Arc::new(RwLock::new(None)),
+        last_replication_at: Arc::new(RwLock::new(None)),
+        last_replication_keys_success: Arc::new(AtomicU64::new(0)),
+        last_replication_keys_failed: Arc::new(AtomicU64::new(0)),
     });
 
     tokio::spawn(heartbeat::run(state.clone()));
@@ -39,6 +42,7 @@ async fn main() {
         .route("/v1/nodes", get(get_nodes))
         .route("/v1/health", get(get_health))
         .route("/v1/metrics", get(get_metrics))
+        .route("/v1/status", get(get_status))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(&bind_addr)

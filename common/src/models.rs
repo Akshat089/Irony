@@ -108,3 +108,10 @@ pub struct ControllerMetrics{
     pub re_replication_count: u64,
     pub uptime_seconds: u64,
 }
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ControllerStatus{
+    pub last_replicated_node: String,
+    pub last_replication_at: DateTime<Utc>,
+    pub last_replication_keys_success: u64,
+    pub last_replication_keys_failed: u64,
+}

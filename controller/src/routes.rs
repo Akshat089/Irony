@@ -11,6 +11,7 @@ use common::models::{
     HeartbeatResponse,
     NodeInfo,
     ControllerMetrics,
+    ControllerStatus,
 };
 use chrono::Utc;
 use std::sync::atomic::Ordering;
@@ -146,5 +147,18 @@ pub async fn get_metrics(
         ring_version,
         re_replication_count: state.re_replication_count.load(Ordering::Relaxed),
         uptime_seconds: uptime,
+    })
+}
+pub async fn get_status(State(state): State<SharedState>) -> Json<ControllerStatus> {
+    let last_node = state.last_replication_node.read().await.clone().unwrap_or_else(|| "N/A".to_string());
+    let last_at = state.last_replication_at.read().await.clone().map(|dt| dt.with_timezone(&chrono::Utc)).unwrap_or_else(chrono::Utc::now);
+    let last_success = state.last_replication_keys_success.load(Ordering::Relaxed);
+    let last_failed = state.last_replication_keys_failed.load(Ordering::Relaxed);
+
+    Json(ControllerStatus {
+        last_replicated_node: last_node,
+        last_replication_at: last_at,
+        last_replication_keys_success: last_success,
+        last_replication_keys_failed: last_failed,
     })
 }

@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use common::ring::HashRing;
 use common::models::{NodeStatus, KeyDumpResponse};
 use crate::state::SharedState;
-use reqwest;
 use std::sync::atomic::Ordering;
 pub async fn trigger_re_replication(
     state: SharedState,
@@ -11,6 +10,8 @@ pub async fn trigger_re_replication(
 ) {
     println!("Starting re-replication for failed node: {}", failed_node_id);
     state.re_replication_count.fetch_add(1, Ordering::Relaxed);
+    state.last_replication_node.write().await.replace(failed_node_id.clone());
+    state.last_replication_at.write().await.replace(chrono::Utc::now());
     let surviving_nodes: Vec<(String, String, u16)> = {
         state.nodes.read().await
             .iter()
@@ -91,7 +92,6 @@ pub async fn trigger_re_replication(
         failed_node_id
     );
 
-    // Step 4 — for each affected key, find source and target
     let mut re_replicated = 0;
     let mut failed = 0;
 
@@ -158,12 +158,14 @@ pub async fn trigger_re_replication(
                                 key, source_id, target_id
                             );
                             re_replicated += 1;
+                            state.last_replication_keys_success.fetch_add(1, Ordering::Relaxed);
                         }
                         _ => {
                             println!(
                                 "Failed to re-replicate key {} from {} to {}",
                                 key, source_id, target_id
                             );
+                            state.last_replication_keys_failed.fetch_add(1, Ordering::Relaxed);
                             failed += 1;
                         }
                     }

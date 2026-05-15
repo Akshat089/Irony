@@ -12,7 +12,6 @@ use axum::{
     Router,
 };
 use std::sync::atomic::AtomicU64;
-use chrono::Utc;
 mod routes;
 mod state;
 mod heartbeat;
